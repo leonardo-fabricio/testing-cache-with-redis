@@ -8,25 +8,29 @@ from rest_framework import viewsets,generics,status
 from django.core.cache import cache 
 from rest_framework.decorators import api_view
 
-
-class ProductViewSet(viewsets.ViewSet):
-    # With cookie: cache requested url for each user for 2 hours
-    def list(self, request, format=None):
-        content = {
-            'products': ModelTestProduct.objects.all().values("id","name","description", "price")
-        }
-        return Response(verify_or_create_cache(request.get_full_path(), content))
-
 class DetailProduct(generics.RetrieveAPIView):
-      lookup_field = "pk"
-      queryset = ModelTestProduct.objects.all()
-      serializer_class = ModelTestProductSerializer
+        lookup_field = "pk"
+        queryset = ModelTestProduct.objects.all()
+        serializer_class = ModelTestProductSerializer
 
-      def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        res = verify_or_create_cache(instance.pk,request.get_full_path() ,serializer.data) 
-        return Response(res.get("values"))
+        def retrieve(self, request, *args, **kwargs):
+            cacheControl = CacheControl(self.kwargs["pk"])
+            attr = cacheControl.get_cache() 
+            if attr: 
+                print("acessei a cache")
+                return Response(attr)
+
+            instance = self.get_object()
+            serializer = self.get_serializer(instance)
+            attr = cacheControl.create_cache(serializer.data)
+            print("não acessei a cache")
+            return Response(attr)
+
+        
+
+
+        
+        
 
 @api_view(('GET',))
 def ListValuesCache(request):
