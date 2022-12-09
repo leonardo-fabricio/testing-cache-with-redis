@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework import viewsets,generics,status
 from django.core.cache import cache 
 from rest_framework.decorators import api_view
+from django.db import connection
 
 class DetailProduct(generics.RetrieveAPIView):
         lookup_field = "pk"
@@ -17,28 +18,37 @@ class DetailProduct(generics.RetrieveAPIView):
             cacheControl = CacheControl(self.kwargs["pk"])
             attr = cacheControl.get_cache() 
             if attr: 
-                print("acessei a cache")
+                print("\n\n\nAcessei a cache - Quantidade de conexões: {}".format(len(connection.queries)))
                 return Response(attr)
 
             instance = self.get_object()
             serializer = self.get_serializer(instance)
             attr = cacheControl.create_cache(serializer.data)
-            print("não acessei a cache")
+            print("\n\n\nNão acessei a cache - Quantidade de conexões: {}".format(len(connection.queries)))
             return Response(attr)
 
-        
+class ListAllProducts(generics.ListAPIView):
+        serializer_class = ModelTestProductSerializer
 
-
-        
-        
+        def get_queryset(self):
+                cacheControl = CacheControl("list_home")
+                attr = cacheControl.get_cache()
+                if attr:
+                        print("\n\n\nAcessei a cache - Quantidade de conexões: {}".format(len(connection.queries)))
+                        return attr
+                values = cacheControl.create_cache(ModelTestProduct.objects.all())
+                print("\n\n\nNão acessei a cache - Quantidade de conexões: {}".format(len(connection.queries)))
+                return values
 
 @api_view(('GET',))
 def ListValuesCache(request):
-      cache_attr = cache.get_many(cache.keys("*"))
-      return Response(cache_attr)
+        cache_attr = cache.get_many(cache.keys("*"))
+        return Response(cache_attr)
 
 @api_view(('DELETE',))
 def DeleteValuesCache(request):
-      cache.delete_many(cache.keys("*"))
-      return Response({"detail": "clear cache successfully"})
+        cache.delete_many(cache.keys("*"))
+        return Response({"detail": "clear cache successfully"})
+
+
      

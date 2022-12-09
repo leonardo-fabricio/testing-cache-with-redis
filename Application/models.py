@@ -7,4 +7,5 @@ class ModelTestProduct(models.Model):
 
       def save(self):
             CacheControl(self.pk).delete_cache()
+            CacheControl("list_home").delete_cache()
             return super().save()
