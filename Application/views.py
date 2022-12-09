@@ -29,16 +29,19 @@ class DetailProduct(generics.RetrieveAPIView):
 
 class ListAllProducts(generics.ListAPIView):
         serializer_class = ModelTestProductSerializer
-
-        def get_queryset(self):
+        queryset = ModelTestProduct.objects.all()
+        def list(self, request, *args, **kwargs):
                 cacheControl = CacheControl("list_home")
                 attr = cacheControl.get_cache()
                 if attr:
                         print("\n\n\nAcessei a cache - Quantidade de conexões: {}".format(len(connection.queries)))
-                        return attr
-                values = cacheControl.create_cache(ModelTestProduct.objects.all())
+                        return Response(attr)
+                queryset = self.filter_queryset(self.get_queryset())
+                serializer = self.get_serializer(queryset, many=True)
+                values = cacheControl.create_cache(serializer.data)
                 print("\n\n\nNão acessei a cache - Quantidade de conexões: {}".format(len(connection.queries)))
-                return values
+                return Response(values)
+                
 
 @api_view(('GET',))
 def ListValuesCache(request):
